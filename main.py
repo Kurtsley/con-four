@@ -34,6 +34,7 @@ class Board:
         self.topSlot_id = (0, 0)        
         self.slots = []
         self.topSlots = []
+        self.takenSlots = []
 
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
@@ -56,15 +57,21 @@ class Board:
             self.topSlot_id = (self.slot_x, self.slot_y)
             self.topSlots.append(self.topSlot_id)
 
+    def updateSlots(self, tokens):
+        for slot in self.slots:
+            for token in tokens:
+                if token.x == slot[0] and token.y == slot[1] and token.landed:
+                    self.takenSlots.append(slot)
 
 
 class Token:    
-    def __init__(self, x, y, count):
+    def __init__(self, x, y, count, board):
         self.x = x
         self.y = y
         self.dropped = False
         self.landed = False
         self.player_color = PLAYER_COLOR_2 if count % 2 == 0 else PLAYER_COLOR_1
+        self.board = board
 
     def update(self):
         if not self.landed:
@@ -81,12 +88,17 @@ class Token:
                 self.landed = True
 
     def isLanded(self):
-        return self.y >= BOARD_BOTTOM - TOKEN_HEIGHT
+        for slot in self.board.takenSlots:
+            if self.x == slot[0] and self.y == slot[1]:
+                return True
+
+        if self.y >= BOARD_BOTTOM - TOKEN_HEIGHT:
+            return True
 
     def updateMovement(self):
-        if pyxel.btnp(pyxel.KEY_RIGHT) and self.x <= BOARD_RIGHT_EDGE - TOKEN_WIDTH:
+        if pyxel.btnp(pyxel.KEY_RIGHT) and self.x <= BOARD_RIGHT_EDGE - TOKEN_WIDTH and not self.dropped:
             self.x += TOKEN_OFFSET_X
-        elif pyxel.btnp(pyxel.KEY_LEFT) and self.x >= BOARD_LEFT_EDGE + TOKEN_WIDTH:
+        elif pyxel.btnp(pyxel.KEY_LEFT) and self.x >= BOARD_LEFT_EDGE + TOKEN_WIDTH and not self.dropped:
             self.x -= TOKEN_OFFSET_X
         elif pyxel.btnp(pyxel.KEY_SPACE):
             self.dropped = True
@@ -106,21 +118,23 @@ class App:
 
         self.board = Board()
 
-        self.spawnToken()
+        self.spawnToken(self.board)
         
         pyxel.run(self.update, self.draw)
 
-    def spawnToken(self):
+    def spawnToken(self, board):
         self.token_count += 1
-        token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count)
+        token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count, board)
         self.tokens.append(token)
         return token
 
     def update(self):
         if pyxel.btnr(pyxel.KEY_SPACE):
-            self.spawnToken()
+            self.spawnToken(self.board)
         for token in self.tokens:
             token.update()
+        self.board.updateSlots(self.tokens)
+        print(len(self.board.takenSlots))
 
 
 
