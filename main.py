@@ -51,35 +51,42 @@ class Board:
 
 
 class Token:    
-    def __init__(self, x, y, count, board):
+    def __init__(self, x, y, count):
         self.x = x
         self.y = y
         self.dropped = False
         self.landed = False
         self.player_color = PLAYER_COLOR_2 if count % 2 == 0 else PLAYER_COLOR_1
-        self.board = board
+        self.landedTokens = []
 
-    def update(self):
+
+    def update(self, tokens):
         if not self.landed:
-            self.updateFalling()
+            self.updateFalling(tokens)
             self.updateMovement()
 
-    def updateFalling(self):
+    def updateFalling(self, tokens):
         if self.dropped:
             self.y += TOKEN_GRAVITY
-
-            if self.isLanded():
-                self.y = BOARD_BOTTOM - TOKEN_SIZE
+            self.checkCollision(tokens)
+        
+    def checkCollision(self, tokens):
+        for token in tokens:
+          if token != self and token.landed and self.hasCollided(token):
+                self.y = token.y - TOKEN_SIZE
                 self.dropped = False
                 self.landed = True
-
-    def isLanded(self):
-        for slot in self.board.takenSlots:
-            if self.x == slot[0] and self.y == slot[1]:
-                return True
-
-        if self.y >= BOARD_BOTTOM - TOKEN_SIZE:
-            return True
+                self.landedTokens.append(self)
+        
+    def hasCollided(self, token):
+        return (
+            self.x == token.x and
+            self.y >= token.y - TOKEN_SIZE or
+            self.y >= BOARD_BOTTOM - TOKEN_SIZE
+        )
+    
+    def hasLanded(self):
+        return self.y >= BOARD_BOTTOM - TOKEN_SIZE
 
     def updateMovement(self):
         if pyxel.btnp(pyxel.KEY_RIGHT) and self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not self.dropped:
@@ -91,7 +98,7 @@ class Token:
 
 
     def draw(self):
-        pyxel.rect(self.x, self.y, TOKEN_SIZE, TOKEN_SIZE, self.player_color)
+        pyxel.rect(self.x, self.y, TOKEN_SIZE - 1, TOKEN_SIZE -1, self.player_color)
 
 
 class App:
@@ -104,21 +111,23 @@ class App:
 
         self.board = Board()
 
-        self.spawnToken(self.board)
+        self.spawnToken()
         
         pyxel.run(self.update, self.draw)
 
-    def spawnToken(self, board):
+    def spawnToken(self):
         self.token_count += 1
-        token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count, board)
+        token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count)
         self.tokens.append(token)
         return token
 
     def update(self):
         if pyxel.btnr(pyxel.KEY_SPACE):
-            self.spawnToken(self.board)
+            self.spawnToken()
         for token in self.tokens:
-            token.update()
+            token.update(self.tokens)
+
+            
 
 
 
