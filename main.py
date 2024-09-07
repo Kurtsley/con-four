@@ -34,7 +34,6 @@ class Board:
         self.slot_id = (0, 0)
         self.topSlot_id = (0, 0)        
         self.slots = []
-        self.topSlots = []
         self.takenSlots = []
 
     def drawBackground(self):
@@ -54,11 +53,11 @@ class Token:
     def __init__(self, x, y, count):
         self.x = x
         self.y = y
+        self.freshSpawn = True
+        self.canSpawn = True
         self.dropped = False
         self.landed = False
         self.player_color = PLAYER_COLOR_2 if count % 2 == 0 else PLAYER_COLOR_1
-        self.landedTokens = []
-
 
     def update(self, tokens):
         if not self.landed:
@@ -68,42 +67,51 @@ class Token:
     def updateFalling(self, tokens):
         if self.dropped:
             self.y += TOKEN_GRAVITY
-            self.checkCollision(tokens)
-        
-    def checkCollision(self, tokens):
-        for token in tokens:
-          if token != self and token.landed and self.hasCollided(token):
-                self.y = token.y - TOKEN_SIZE
-                self.dropped = False
-                self.landed = True
-                self.landedTokens.append(self)
-        
-    def hasCollided(self, token):
-        return (
-            self.x == token.x and
-            self.y >= token.y - TOKEN_SIZE or
-            self.y >= BOARD_BOTTOM - TOKEN_SIZE
-        )
+            self.checkCollisions(tokens)
     
     def hasLanded(self):
         return self.y >= BOARD_BOTTOM - TOKEN_SIZE
+    
+    def checkCollisions(self, tokens):
+        if self.hasLanded():
+            self.y = BOARD_BOTTOM - TOKEN_SIZE
+            self.dropped = False
+            self.landed = True
+
+        for other_token in tokens:
+            if (self != other_token and 
+                self.dropped and not 
+                other_token.dropped and not 
+                other_token.freshSpawn
+            ):
+                if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
+                    self.y = other_token.y - TOKEN_SIZE
+                    self.dropped = False
+                    self.landed = True
 
     def updateMovement(self):
-        if pyxel.btnp(pyxel.KEY_RIGHT) and self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not self.dropped:
+        if (pyxel.btnp(pyxel.KEY_RIGHT) and 
+            self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not 
+            self.dropped
+        ):
             self.x += TOKEN_SIZE
-        elif pyxel.btnp(pyxel.KEY_LEFT) and self.x >= BOARD_LEFT_EDGE + TOKEN_SIZE and not self.dropped:
-            self.x -= TOKEN_SIZE
-        elif pyxel.btnp(pyxel.KEY_SPACE):
-            self.dropped = True
 
+        elif (pyxel.btnp(pyxel.KEY_LEFT) and 
+              self.x >= BOARD_LEFT_EDGE + TOKEN_SIZE and not 
+              self.dropped):
+            self.x -= TOKEN_SIZE
+
+        elif pyxel.btnp(pyxel.KEY_SPACE) and self.canSpawn:
+            self.dropped = True
+            self.freshSpawn = False
 
     def draw(self):
-        pyxel.rect(self.x, self.y, TOKEN_SIZE - 1, TOKEN_SIZE -1, self.player_color)
+        pyxel.rect(self.x, self.y, TOKEN_SIZE, TOKEN_SIZE, self.player_color)
 
 
 class App:
     def __init__(self):
-        pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4")
+        pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4", fps=60)
 
         self.tokens = []
         self.landedTokens = []
@@ -126,10 +134,6 @@ class App:
             self.spawnToken()
         for token in self.tokens:
             token.update(self.tokens)
-
-            
-
-
 
     def draw(self):
         pyxel.cls(0)
