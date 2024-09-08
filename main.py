@@ -32,25 +32,26 @@ class Board:
         self.slot_x = 0
         self.slot_y = 0
         self.slot_id = (0, 0)
-        self.topSlot_id = (0, 0)        
         self.slots = []
-        self.takenSlots = []
+        self.landedTokens = []
         self.victory = False
 
     def createGrid(self):
-        for row in range(6):
-            for col in range(7):
+        self.slots = []
+
+        for col in range(7):
+            col_slots = []
+            for row in range(6):
                 self.slot_x = self.padding_x + BOARD_OFFSET + col * TOKEN_SIZE
                 self.slot_y = PADDING_Y + row * TOKEN_SIZE
                 self.slot_id = (self.slot_x, self.slot_y)
-                self.slots.append(self.slot_id)
+                col_slots.append(self.slot_id)
+            self.slots.append(col_slots)
 
     def checkGrid(self,tokens):
         for token in tokens:
-            if token.landed:
-                for slot in self.slots:
-                    if token.x == slot[0] and token.y == slot[1] and token not in self.takenSlots:
-                        self.takenSlots.append(token)
+            if token.landed and token not in self.landedTokens:
+                self.landedTokens.append(token)
 
     def checkVictory(self):
         pass
@@ -61,8 +62,11 @@ class Board:
         pyxel.rect(0, TABLE_HEIGHT, pyxel.width, pyxel.height, 9)
 
     def drawGrid(self, slots):
-        for slot in slots:
-            pyxel.rect(slot[0], slot[1], TOKEN_SIZE, TOKEN_SIZE, 0)      
+        for row in range(len(slots)):
+            for col in range(len(slots[row])):
+                slot_x = slots[row][col][0]
+                slot_y = slots[row][col][1]
+                pyxel.rect(slot_x, slot_y, TOKEN_SIZE, TOKEN_SIZE, 0)
 
 
 class Token:    
@@ -70,15 +74,14 @@ class Token:
         self.x = x
         self.y = y
         self.freshSpawn = True
-        self.canSpawn = True
         self.dropped = False
         self.landed = False
         self.player_color = PLAYER_COLOR_2 if count % 2 == 0 else PLAYER_COLOR_1
 
-    def update(self, tokens):
+    def update(self, tokens, board):
         if not self.landed:
             self.updateFalling(tokens)
-            self.updateMovement()
+            self.updateMovement(board)
 
     def updateFalling(self, tokens):
         if self.dropped:
@@ -87,6 +90,19 @@ class Token:
     
     def hasLanded(self):
         return self.y >= BOARD_BOTTOM - TOKEN_SIZE
+    
+    def canSpawn(self, board):
+        topSlots = []
+        for col in range(7):
+            slot = board.slots[col][0]
+            topSlots.append(slot)
+
+        for token in board.landedTokens:
+            tokenTuple = (token.x, token.y)
+            if tokenTuple in topSlots and self.x == token.x:
+                    return False
+
+        return True
     
     def checkCollisions(self, tokens):
         if self.hasLanded():
@@ -105,7 +121,8 @@ class Token:
                     self.dropped = False
                     self.landed = True
 
-    def updateMovement(self):
+    def updateMovement(self, board):
+        canSpawn = self.canSpawn(board)
         if (pyxel.btnp(pyxel.KEY_RIGHT) and 
             self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not 
             self.dropped
@@ -117,7 +134,7 @@ class Token:
               self.dropped):
             self.x -= TOKEN_SIZE
 
-        elif pyxel.btnp(pyxel.KEY_SPACE) and self.canSpawn:
+        elif pyxel.btnp(pyxel.KEY_SPACE) and canSpawn:
             self.dropped = True
             self.freshSpawn = False
 
@@ -130,8 +147,7 @@ class App:
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4", fps=60)
 
         self.tokens = []
-        self.landedTokens = []
-        self.token_count = 0
+        self.token_count = 1
 
         self.board = Board()
         self.board.createGrid()
@@ -141,16 +157,16 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def spawnToken(self):
-        self.token_count += 1
         token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count)
+        self.token_count += 1
         self.tokens.append(token)
         return token
 
     def update(self):
+        for token in self.tokens:
+            token.update(self.tokens, self.board)
         if pyxel.btnr(pyxel.KEY_SPACE):
             self.spawnToken()
-        for token in self.tokens:
-            token.update(self.tokens)
         self.board.checkGrid(self.tokens)
 
     def draw(self):
