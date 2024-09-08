@@ -35,18 +35,34 @@ class Board:
         self.topSlot_id = (0, 0)        
         self.slots = []
         self.takenSlots = []
+        self.victory = False
+
+    def createGrid(self):
+        for row in range(6):
+            for col in range(7):
+                self.slot_x = self.padding_x + BOARD_OFFSET + col * TOKEN_SIZE
+                self.slot_y = PADDING_Y + row * TOKEN_SIZE
+                self.slot_id = (self.slot_x, self.slot_y)
+                self.slots.append(self.slot_id)
+
+    def checkGrid(self,tokens):
+        for token in tokens:
+            if token.landed:
+                for slot in self.slots:
+                    if token.x == slot[0] and token.y == slot[1] and token not in self.takenSlots:
+                        self.takenSlots.append(token)
+
+    def checkVictory(self):
+        pass
 
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
         pyxel.rect(self.padding_x, PADDING_Y, BOARD_WIDTH, BOARD_HEIGHT, 5)
         pyxel.rect(0, TABLE_HEIGHT, pyxel.width, pyxel.height, 9)
 
-    def drawGrid(self):
-        for row in range(6):
-            for col in range(7):
-                self.slot_x = self.padding_x + BOARD_OFFSET + col * TOKEN_SIZE
-                self.slot_y = PADDING_Y + row * TOKEN_SIZE
-                pyxel.rect(self.slot_x, self.slot_y, TOKEN_SIZE, TOKEN_SIZE, 0)
+    def drawGrid(self, slots):
+        for slot in slots:
+            pyxel.rect(slot[0], slot[1], TOKEN_SIZE, TOKEN_SIZE, 0)      
 
 
 class Token:    
@@ -118,6 +134,7 @@ class App:
         self.token_count = 0
 
         self.board = Board()
+        self.board.createGrid()
 
         self.spawnToken()
         
@@ -134,11 +151,12 @@ class App:
             self.spawnToken()
         for token in self.tokens:
             token.update(self.tokens)
+        self.board.checkGrid(self.tokens)
 
     def draw(self):
         pyxel.cls(0)
         self.board.drawBackground()
-        self.board.drawGrid()
+        self.board.drawGrid(self.board.slots)
         for token in self.tokens:
             token.draw()
 
