@@ -56,6 +56,13 @@ class Board:
     def checkVictory(self):
         pass
 
+    def hasSpawnToken(self, tokens):
+        for token in tokens:
+            if token.freshSpawn:
+                return True
+            
+        return False
+
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
         pyxel.rect(self.padding_x, PADDING_Y, BOARD_WIDTH, BOARD_HEIGHT, 5)
@@ -77,6 +84,7 @@ class Token:
         self.dropped = False
         self.landed = False
         self.player_color = PLAYER_COLOR_2 if count % 2 == 0 else PLAYER_COLOR_1
+        self.fallingToken = None
 
     def update(self, tokens, board):
         if not self.landed:
@@ -85,13 +93,14 @@ class Token:
 
     def updateFalling(self, tokens):
         if self.dropped:
+            self.fallingToken = self
             self.y += TOKEN_GRAVITY
             self.checkCollisions(tokens)
     
     def hasLanded(self):
         return self.y >= BOARD_BOTTOM - TOKEN_SIZE
     
-    def canSpawn(self, board):
+    def canDrop(self, board):
         topSlots = []
         for col in range(7):
             slot = board.slots[col][0]
@@ -101,7 +110,7 @@ class Token:
             tokenTuple = (token.x, token.y)
             if tokenTuple in topSlots and self.x == token.x:
                     return False
-
+            
         return True
     
     def checkCollisions(self, tokens):
@@ -109,6 +118,7 @@ class Token:
             self.y = BOARD_BOTTOM - TOKEN_SIZE
             self.dropped = False
             self.landed = True
+            self.fallingToken = None
 
         for other_token in tokens:
             if (self != other_token and 
@@ -120,9 +130,10 @@ class Token:
                     self.y = other_token.y - TOKEN_SIZE
                     self.dropped = False
                     self.landed = True
+                    self.fallingToken = None
 
     def updateMovement(self, board):
-        canSpawn = self.canSpawn(board)
+        canDrop = self.canDrop(board)
         if (pyxel.btnp(pyxel.KEY_RIGHT) and 
             self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not 
             self.dropped
@@ -134,7 +145,7 @@ class Token:
               self.dropped):
             self.x -= TOKEN_SIZE
 
-        elif pyxel.btnp(pyxel.KEY_SPACE) and canSpawn:
+        elif pyxel.btnp(pyxel.KEY_SPACE) and canDrop:
             self.dropped = True
             self.freshSpawn = False
 
@@ -158,15 +169,16 @@ class App:
 
     def spawnToken(self):
         token = Token(INITIAL_SPAWN_X, INITIAL_SPAWN_Y, self.token_count)
-        self.token_count += 1
-        self.tokens.append(token)
-        return token
+        if token not in self.tokens:
+            self.token_count += 1
+            self.tokens.append(token)
 
     def update(self):
         for token in self.tokens:
             token.update(self.tokens, self.board)
-        if pyxel.btnr(pyxel.KEY_SPACE):
-            self.spawnToken()
+            if not token.fallingToken and not self.board.hasSpawnToken(self.tokens) and not token.landed:
+                self.spawnToken()
+                break
         self.board.checkGrid(self.tokens)
 
     def draw(self):
