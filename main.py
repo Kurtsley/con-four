@@ -54,25 +54,54 @@ class Board:
                 self.landedTokens.append(token)
 
     def checkVictory(self):
-        pass
+        for row in range(len(self.slots)):
+            for col in range(len(self.slots[row])):
+                slot_x = self.slots[row][col][0]
+                slot_y = self.slots[row][col][1]
+                slot_color = pyxel.pget(slot_x + BOARD_OFFSET, slot_y)
+                
+                if slot_color == 0:
+                    continue
+
+                if col <= len(self.slots[row]) - 4:
+                    if all(pyxel.pget(self.slots[row][col + i][0], self.slots[row][col + i][1]) \
+                           == slot_color for i in range(4)):
+                        return True
+
+                if row <= len(self.slots) - 4:
+                    if all(pyxel.pget(self.slots[row + i][col][0], self.slots[row + i][col][1]) \
+                           == slot_color for i in range(4)):
+                        return True
+
+                if row <= len(self.slots) - 4 and col <= len(self.slots[row]) - 4:
+                    if all(pyxel.pget(self.slots[row + i][col + i][0], self.slots[row + i][col + i][1]) \
+                           == slot_color for i in range(4)):
+                        return True
+
+                if row <= len(self.slots) - 4 and col >= 3:
+                    if all(pyxel.pget(self.slots[row + i][col - i][0], self.slots[row + i][col - i][1]) \
+                           == slot_color for i in range(4)):
+                        return True
+                    
+        return False
 
     def hasSpawnToken(self, tokens):
         for token in tokens:
             if token.freshSpawn:
                 return True
             
-        return False
+        return False        
 
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
         pyxel.rect(self.padding_x, PADDING_Y, BOARD_WIDTH, BOARD_HEIGHT, 5)
         pyxel.rect(0, TABLE_HEIGHT, pyxel.width, pyxel.height, 9)
 
-    def drawGrid(self, slots):
-        for row in range(len(slots)):
-            for col in range(len(slots[row])):
-                slot_x = slots[row][col][0]
-                slot_y = slots[row][col][1]
+    def drawGrid(self):
+        for row in range(len(self.slots)):
+            for col in range(len(self.slots[row])):
+                slot_x = self.slots[row][col][0]
+                slot_y = self.slots[row][col][1]
                 pyxel.rect(slot_x, slot_y, TOKEN_SIZE, TOKEN_SIZE, 0)
 
 
@@ -157,6 +186,8 @@ class App:
     def __init__(self):
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4", fps=60)
 
+        self.game_over = False
+
         self.tokens = []
         self.token_count = 1
 
@@ -173,18 +204,35 @@ class App:
             self.token_count += 1
             self.tokens.append(token)
 
+    def resetGame(self):
+        self.tokens.clear()
+        self.token_count = 3 - self.token_count
+        self.game_over = False
+        self.spawnToken()
+
     def update(self):
-        for token in self.tokens:
-            token.update(self.tokens, self.board)
-            if not token.fallingToken and not self.board.hasSpawnToken(self.tokens) and not token.landed:
-                self.spawnToken()
-                break
-        self.board.checkGrid(self.tokens)
+        if not self.game_over:
+            for token in self.tokens:
+                token.update(self.tokens, self.board)
+                if not token.fallingToken and not self.board.hasSpawnToken(self.tokens) \
+                    and not token.landed:
+                    self.spawnToken()
+                    break
+            self.board.checkGrid(self.tokens)
+            if self.board.checkVictory():
+                self.game_over = True
+        else:
+            if pyxel.btnp(pyxel.KEY_SPACE):
+                self.resetGame()
 
     def draw(self):
         pyxel.cls(0)
+        if self.game_over:
+            pyxel.text(pyxel.width // 2, BOARD_OFFSET, "Press SPACE to reset", pyxel.COLOR_RED)
+            
+
         self.board.drawBackground()
-        self.board.drawGrid(self.board.slots)
+        self.board.drawGrid()
         for token in self.tokens:
             token.draw()
 
