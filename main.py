@@ -1,4 +1,6 @@
 # Brian Beard 2024
+# title: Con-Four
+# author: Kurtsley
 
 import pyxel
 
