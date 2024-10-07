@@ -1,6 +1,12 @@
 # Brian Beard 2024
 # title: Con-Four
 # author: Kurtsley
+#
+# This is free and unencumbered software released into the public domain.
+#
+# Anyone is free to copy, modify, publish, use, compile, sell, or distribute
+# this software, either in source code form or as a compiled binary, for any
+# purpose, commercial or non-commercial, and by any means.
 
 import pyxel
 
@@ -165,10 +171,10 @@ class Token:
 
         for other_token in tokens:
             if (self != other_token and
-                    self.dropped and not
-                    other_token.dropped and not
-                    other_token.freshSpawn
-                ):
+                        self.dropped and not
+                        other_token.dropped and not
+                        other_token.freshSpawn
+                    ):
                 if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
                     self.y = other_token.y - TOKEN_SIZE
                     self.dropped = False
@@ -178,9 +184,9 @@ class Token:
     def updateMovement(self, board):
         canDrop = self.canDrop(board)
         if (pyxel.btnp(pyxel.KEY_RIGHT) and
-                self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
-                self.dropped
-            ):
+                    self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
+                    self.dropped
+                ):
             self.x += TOKEN_SIZE
 
         elif (pyxel.btnp(pyxel.KEY_LEFT) and
