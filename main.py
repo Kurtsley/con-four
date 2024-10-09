@@ -17,19 +17,20 @@ CHARACTER_WIDTH = 2
 
 PADDING_Y = 40
 
-TOKEN_SIZE = 16
+TOKEN_SIZE = 17
+TOKEN_CIRC = 8
 TOKEN_GRAVITY = 4
 
-BOARD_WIDTH = 124
-BOARD_HEIGHT = 112
+BOARD_WIDTH = 133
+BOARD_HEIGHT = 119
 BOARD_OFFSET = 6
 BOARD_BOTTOM = BOARD_HEIGHT + PADDING_Y - TOKEN_SIZE
 BOARD_RIGHT_EDGE = 138
-BOARD_LEFT_EDGE = 28
+BOARD_LEFT_EDGE = 29
 
 TABLE_HEIGHT = BOARD_HEIGHT + PADDING_Y
 
-INITIAL_SPAWN_X = 82
+INITIAL_SPAWN_X = 80
 INITIAL_SPAWN_Y = 18
 
 PLAYER_COLOR_1 = 8
@@ -68,34 +69,35 @@ class Board:
             for col in range(len(self.slots[row])):
                 slot_x = self.slots[row][col][0]
                 slot_y = self.slots[row][col][1]
-                slot_color = pyxel.pget(slot_x + BOARD_OFFSET, slot_y)
+                slot_color = pyxel.pget(
+                    slot_x + TOKEN_CIRC, slot_y + TOKEN_CIRC)
 
                 if slot_color == 0:
                     continue
 
                 if col <= len(self.slots[row]) - 4:
-                    if all(pyxel.pget(self.slots[row][col + i][0], self.slots[row][col + i][1])
+                    if all(pyxel.pget(self.slots[row][col + i][0] + TOKEN_CIRC, self.slots[row][col + i][1] + TOKEN_CIRC)
                            == slot_color for i in range(4)):
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
 
                 if row <= len(self.slots) - 4:
-                    if all(pyxel.pget(self.slots[row + i][col][0], self.slots[row + i][col][1])
+                    if all(pyxel.pget(self.slots[row + i][col][0] + TOKEN_CIRC, self.slots[row + i][col][1] + TOKEN_CIRC)
                            == slot_color for i in range(4)):
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
 
                 if row <= len(self.slots) - 4 and col <= len(self.slots[row]) - 4:
-                    if all(pyxel.pget(self.slots[row + i][col + i][0], self.slots[row + i][col + i][1])
+                    if all(pyxel.pget(self.slots[row + i][col + i][0] + TOKEN_CIRC, self.slots[row + i][col + i][1] + TOKEN_CIRC)
                            == slot_color for i in range(4)):
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
 
                 if row <= len(self.slots) - 4 and col >= 3:
-                    if all(pyxel.pget(self.slots[row + i][col - i][0], self.slots[row + i][col - i][1])
+                    if all(pyxel.pget(self.slots[row + i][col - i][0] + TOKEN_CIRC, self.slots[row + i][col - i][1] + TOKEN_CIRC)
                            == slot_color for i in range(4)):
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
@@ -110,25 +112,25 @@ class Board:
 
         return False
 
-    def canDrop(self):
+    def canDrop(self, token):
         topSlots = []
         for col in range(7):
             slot = self.slots[col][0]
             topSlots.append(slot)
 
-        for token in self.landedTokens:
-            tokenTuple = (token.x, token.y)
-            if tokenTuple in topSlots and self.x == token.x:
+        for other_token in self.landedTokens:
+            tokenTuple = (other_token.x, other_token.y)
+            if tokenTuple in topSlots and token.x == other_token.x:
                 return False
 
         return True
 
     def updateMovement(self, token):
-        canDrop = self.canDrop()
+        canDrop = self.canDrop(token)
         if (pyxel.btnp(pyxel.KEY_RIGHT) and
-            token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
-            token.dropped
-            ):
+                    token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
+                    token.dropped
+                ):
             token.x += TOKEN_SIZE
 
         elif (pyxel.btnp(pyxel.KEY_LEFT) and
@@ -150,7 +152,7 @@ class Board:
             for col in range(len(self.slots[row])):
                 slot_x = self.slots[row][col][0]
                 slot_y = self.slots[row][col][1]
-                pyxel.rect(slot_x, slot_y, TOKEN_SIZE, TOKEN_SIZE, 0)
+                pyxel.rect(slot_x + 1, slot_y, TOKEN_SIZE, TOKEN_SIZE, 0)
 
 
 class Token:
@@ -186,10 +188,10 @@ class Token:
 
         for other_token in tokens:
             if (self != other_token and
-                self.dropped and not
-                other_token.dropped and not
-                other_token.freshSpawn
-                ):
+                        self.dropped and not
+                        other_token.dropped and not
+                        other_token.freshSpawn
+                    ):
                 if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
                     self.y = other_token.y - TOKEN_SIZE
                     self.dropped = False
@@ -197,7 +199,8 @@ class Token:
                     self.fallingToken = None
 
     def draw(self):
-        pyxel.rect(self.x, self.y, TOKEN_SIZE, TOKEN_SIZE, self.player_color)
+        pyxel.circ(self.x + TOKEN_CIRC, self.y + TOKEN_CIRC,
+                   TOKEN_CIRC, self.player_color)
 
 
 class App:
