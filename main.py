@@ -77,7 +77,6 @@ class Board:
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
-                                break
 
                 if row <= len(self.slots) - 4:
                     if all(pyxel.pget(self.slots[row + i][col][0], self.slots[row + i][col][1])
@@ -85,7 +84,6 @@ class Board:
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
-                                break
 
                 if row <= len(self.slots) - 4 and col <= len(self.slots[row]) - 4:
                     if all(pyxel.pget(self.slots[row + i][col + i][0], self.slots[row + i][col + i][1])
@@ -93,7 +91,6 @@ class Board:
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
-                                break
 
                 if row <= len(self.slots) - 4 and col >= 3:
                     if all(pyxel.pget(self.slots[row + i][col - i][0], self.slots[row + i][col - i][1])
@@ -101,7 +98,6 @@ class Board:
                         for token in tokens:
                             if token.x == slot_x and token.y == slot_y and token.landed:
                                 return True
-                                break
 
         return False
 
@@ -111,6 +107,36 @@ class Board:
                 return True
 
         return False
+    
+    def canDrop(self):
+        topSlots = []
+        for col in range(7):
+            slot = self.slots[col][0]
+            topSlots.append(slot)
+
+        for token in self.landedTokens:
+            tokenTuple = (token.x, token.y)
+            if tokenTuple in topSlots and self.x == token.x:
+                return False
+
+        return True
+
+    def updateMovement(self, token):
+        canDrop = self.canDrop()
+        if (pyxel.btnp(pyxel.KEY_RIGHT) and
+                    token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
+                    token.dropped
+                ):
+            token.x += TOKEN_SIZE
+
+        elif (pyxel.btnp(pyxel.KEY_LEFT) and
+                token.x >= BOARD_LEFT_EDGE + TOKEN_SIZE and not
+                token.dropped):
+            token.x -= TOKEN_SIZE
+
+        elif pyxel.btnp(pyxel.KEY_SPACE) and canDrop:
+            token.dropped = True
+            token.freshSpawn = False
 
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
@@ -138,7 +164,7 @@ class Token:
     def update(self, tokens, board):
         if not self.landed:
             self.updateFalling(tokens)
-            self.updateMovement(board)
+            board.updateMovement(self)
 
     def updateFalling(self, tokens):
         if self.dropped:
@@ -148,19 +174,6 @@ class Token:
 
     def hasLanded(self):
         return self.y >= BOARD_BOTTOM - TOKEN_SIZE
-
-    def canDrop(self, board):
-        topSlots = []
-        for col in range(7):
-            slot = board.slots[col][0]
-            topSlots.append(slot)
-
-        for token in board.landedTokens:
-            tokenTuple = (token.x, token.y)
-            if tokenTuple in topSlots and self.x == token.x:
-                return False
-
-        return True
 
     def checkCollisions(self, tokens):
         if self.hasLanded():
@@ -181,23 +194,6 @@ class Token:
                     self.landed = True
                     self.fallingToken = None
 
-    def updateMovement(self, board):
-        canDrop = self.canDrop(board)
-        if (pyxel.btnp(pyxel.KEY_RIGHT) and
-                    self.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
-                    self.dropped
-                ):
-            self.x += TOKEN_SIZE
-
-        elif (pyxel.btnp(pyxel.KEY_LEFT) and
-              self.x >= BOARD_LEFT_EDGE + TOKEN_SIZE and not
-              self.dropped):
-            self.x -= TOKEN_SIZE
-
-        elif pyxel.btnp(pyxel.KEY_SPACE) and canDrop:
-            self.dropped = True
-            self.freshSpawn = False
-
     def draw(self):
         pyxel.rect(self.x, self.y, TOKEN_SIZE, TOKEN_SIZE, self.player_color)
 
@@ -206,6 +202,7 @@ class App:
     def __init__(self):
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4", fps=60)
 
+        self.new_game = True
         self.game_over = False
 
         self.tokens = []
@@ -228,6 +225,7 @@ class App:
         self.tokens.clear()
         self.token_count = 3 - self.token_count
         self.game_over = False
+        self.new_game = True
         self.spawnToken()
 
     def update(self):
