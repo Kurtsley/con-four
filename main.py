@@ -13,6 +13,8 @@ import pyxel
 SCREEN_HEIGHT = 180
 SCREEN_WIDTH = 180
 
+CHARACTER_WIDTH = 2
+
 PADDING_Y = 40
 
 TOKEN_SIZE = 16
@@ -107,7 +109,7 @@ class Board:
                 return True
 
         return False
-    
+
     def canDrop(self):
         topSlots = []
         for col in range(7):
@@ -124,9 +126,9 @@ class Board:
     def updateMovement(self, token):
         canDrop = self.canDrop()
         if (pyxel.btnp(pyxel.KEY_RIGHT) and
-                    token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
-                    token.dropped
-                ):
+            token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
+            token.dropped
+            ):
             token.x += TOKEN_SIZE
 
         elif (pyxel.btnp(pyxel.KEY_LEFT) and
@@ -184,10 +186,10 @@ class Token:
 
         for other_token in tokens:
             if (self != other_token and
-                        self.dropped and not
-                        other_token.dropped and not
-                        other_token.freshSpawn
-                    ):
+                self.dropped and not
+                other_token.dropped and not
+                other_token.freshSpawn
+                ):
                 if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
                     self.y = other_token.y - TOKEN_SIZE
                     self.dropped = False
@@ -229,6 +231,8 @@ class App:
         self.spawnToken()
 
     def update(self):
+        if pyxel.btnp(pyxel.KEY_SPACE):
+            self.new_game = False
         if not self.game_over:
             for token in self.tokens:
                 token.update(self.tokens, self.board)
@@ -245,6 +249,10 @@ class App:
 
     def draw(self):
         pyxel.cls(0)
+        if self.new_game:
+            instructions_text = "Arrows to move, space to drop"
+            pyxel.text(pyxel.width // 2 - len(instructions_text),
+                       BOARD_OFFSET, instructions_text, pyxel.COLOR_WHITE)
         if self.game_over:
             for token in self.tokens:
                 if token.freshSpawn:
@@ -256,11 +264,11 @@ class App:
                     # the color of the spawn token, which is the opposite
                     # of the winning color...
                     if color == PLAYER_COLOR_1:
-                        pyxel.text(pyxel.width // 2 - (len(player2_victory) * 2), BOARD_OFFSET,
+                        pyxel.text(pyxel.width // 2 - (len(player2_victory) * CHARACTER_WIDTH), BOARD_OFFSET,
                                    player2_victory, PLAYER_COLOR_2)
 
                     else:
-                        pyxel.text(pyxel.width // 2 - (len(player1_victory) * 2), BOARD_OFFSET,
+                        pyxel.text(pyxel.width // 2 - (len(player1_victory) * CHARACTER_WIDTH), BOARD_OFFSET,
                                    player1_victory, PLAYER_COLOR_1)
 
             pyxel.text(pyxel.width // 2 + 20, BOARD_OFFSET + 15,
