@@ -122,7 +122,7 @@ class Board:
             topSlots.append(slot)
 
         for other_token in self.landedTokens:
-            tokenTuple = (other_token.x, other_token.y)
+            tokenTuple = (other_token.x - 1, other_token.y)
             if tokenTuple in topSlots and token.x == other_token.x:
                 return False
 
@@ -131,14 +131,15 @@ class Board:
     def updateMovement(self, token):
         canDrop = self.canDrop(token)
         if (pyxel.btnp(pyxel.KEY_RIGHT) and
-                    token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
-                    token.dropped
+                token.x <= BOARD_RIGHT_EDGE - TOKEN_SIZE and not
+                token.dropped and not token.landed and not token.fallingToken
                 ):
             token.x += TOKEN_SIZE
 
         elif (pyxel.btnp(pyxel.KEY_LEFT) and
                 token.x >= BOARD_LEFT_EDGE + TOKEN_SIZE and not
-                token.dropped):
+                token.dropped and not token.landed and not token.fallingToken
+              ):
             token.x -= TOKEN_SIZE
 
         elif pyxel.btnp(pyxel.KEY_SPACE) and canDrop:
@@ -193,9 +194,9 @@ class Token:
 
         for other_token in tokens:
             if (self != other_token and
-                        self.dropped and not
-                        other_token.dropped and not
-                        other_token.freshSpawn
+                    self.dropped and not
+                    other_token.dropped and not
+                    other_token.freshSpawn
                     ):
                 if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
                     pyxel.play(0, 0)
