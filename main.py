@@ -53,7 +53,8 @@ class Board:
         for col in range(7):
             col_slots = []
             for row in range(6):
-                self.slot_x = self.padding_x + BOARD_OFFSET + col * TOKEN_SIZE
+                # Subtract 1 from slot_x to fix grid offset
+                self.slot_x = self.padding_x + BOARD_OFFSET + col * TOKEN_SIZE - 1
                 self.slot_y = PADDING_Y + row * TOKEN_SIZE
                 self.slot_id = (self.slot_x, self.slot_y)
                 col_slots.append(self.slot_id)
@@ -71,6 +72,8 @@ class Board:
                 slot_y = self.slots[row][col][1]
                 slot_color = pyxel.pget(
                     slot_x + TOKEN_CIRC, slot_y + TOKEN_CIRC)
+                # Increment by one to line up the victory check
+                slot_x += 1
 
                 if slot_color == 0:
                     continue
@@ -144,7 +147,8 @@ class Board:
 
     def drawBackground(self):
         pyxel.text(BOARD_OFFSET, BOARD_OFFSET, "Connect 4", 7)
-        pyxel.rect(self.padding_x, PADDING_Y, BOARD_WIDTH, BOARD_HEIGHT, 5)
+        # Subtract board width by 2 to fix grid offset
+        pyxel.rect(self.padding_x, PADDING_Y, BOARD_WIDTH - 2, BOARD_HEIGHT, 5)
         pyxel.rect(0, TABLE_HEIGHT, pyxel.width, pyxel.height, 9)
 
     def drawGrid(self):
@@ -181,6 +185,7 @@ class Token:
 
     def checkCollisions(self, tokens):
         if self.hasLanded():
+            pyxel.play(0, 0)
             self.y = BOARD_BOTTOM - TOKEN_SIZE
             self.dropped = False
             self.landed = True
@@ -193,6 +198,7 @@ class Token:
                         other_token.freshSpawn
                     ):
                 if self.y + TOKEN_SIZE >= other_token.y and self.x == other_token.x:
+                    pyxel.play(0, 0)
                     self.y = other_token.y - TOKEN_SIZE
                     self.dropped = False
                     self.landed = True
@@ -206,6 +212,8 @@ class Token:
 class App:
     def __init__(self):
         pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Connect 4", fps=60)
+
+        self.set_sounds()
 
         self.new_game = True
         self.game_over = False
@@ -281,6 +289,9 @@ class App:
         self.board.drawGrid()
         for token in self.tokens:
             token.draw()
+
+    def set_sounds(self):
+        pyxel.sounds[0].set("c3", "s", "3", "n", 1)
 
 
 App()
